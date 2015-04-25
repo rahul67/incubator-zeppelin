@@ -66,9 +66,12 @@ public class SparkSqlInterpreter extends Interpreter {
         "spark",
         SparkSqlInterpreter.class.getName(),
         new InterpreterPropertyBuilder()
-            .add("zeppelin.spark.maxResult", "10000", "Max number of SparkSQL result to display.")
-            .add("zeppelin.spark.concurrentSQL", "false",
-                "Execute multiple SQL concurrently if set true.")
+            .add(ZeppelinConstants.ARG_ZEPPELIN_SPARK_MAXRESULT_KEY,
+                "10000",
+                ZeppelinConstants.ARG_ZEPPELIN_SPARK_MAXRESULT_DESC)
+            .add(ZeppelinConstants.ARG_ZEPPELIN_SPARK_CONCSQL_KEY,
+                ZeppelinConstants.ARG_ZEPPELIN_SPARK_CONCSQL_VALUE,
+                ZeppelinConstants.ARG_ZEPPELIN_SPARK_CONCSQL_DESC)
             .build());
   }
 
@@ -84,7 +87,7 @@ public class SparkSqlInterpreter extends Interpreter {
 
   @Override
   public void open() {
-    this.maxResult = Integer.parseInt(getProperty("zeppelin.spark.maxResult"));
+    this.maxResult = Integer.parseInt(getProperty(ZeppelinConstants.ARG_ZEPPELIN_SPARK_MAXRESULT_KEY));
   }
 
   private SparkInterpreter getSparkInterpreter() {
@@ -104,7 +107,7 @@ public class SparkSqlInterpreter extends Interpreter {
   }
 
   public boolean concurrentSQL() {
-    return Boolean.parseBoolean(getProperty("zeppelin.spark.concurrentSQL"));
+    return Boolean.parseBoolean(getProperty(ZeppelinConstants.ARG_ZEPPELIN_SPARK_CONCSQL_KEY));
   }
 
   @Override
@@ -118,9 +121,9 @@ public class SparkSqlInterpreter extends Interpreter {
 
     SparkContext sc = sqlc.sparkContext();
     if (concurrentSQL()) {
-      sc.setLocalProperty("spark.scheduler.pool", "fair");
+      sc.setLocalProperty(ZeppelinConstants.ARG_SPARK_SCHEDULER_POOL_KEY, ZeppelinConstants.ARG_SPARK_SCHEDULER_POOL_VALUE);
     } else {
-      sc.setLocalProperty("spark.scheduler.pool", null);
+      sc.setLocalProperty(ZeppelinConstants.ARG_SPARK_SCHEDULER_POOL_KEY, null);
     }
 
     try {

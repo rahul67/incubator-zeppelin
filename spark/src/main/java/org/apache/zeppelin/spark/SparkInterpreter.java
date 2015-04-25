@@ -91,24 +91,39 @@ public class SparkInterpreter extends Interpreter {
         "spark",
         SparkInterpreter.class.getName(),
         new InterpreterPropertyBuilder()
-            .add("spark.app.name", "Zeppelin", "The name of spark application.")
-            .add("master",
-                getSystemDefault("MASTER", "spark.master", "local[*]"),
-                "Spark master uri. ex) spark://masterhost:7077")
-            .add("spark.executor.memory",
-                getSystemDefault(null, "spark.executor.memory", "512m"),
-                "Executor memory per worker instance. ex) 512m, 32g")
-            .add("spark.cores.max",
-                getSystemDefault(null, "spark.cores.max", ""),
-                "Total number of cores to use. Empty value uses all available core.")
-            .add("spark.yarn.jar",
-                getSystemDefault("SPARK_YARN_JAR", "spark.yarn.jar", ""),
-                "The location of the Spark jar file. If you use yarn as a cluster, "
-                + "we should set this value")
-            .add("zeppelin.spark.useHiveContext", "true",
-                 "Use HiveContext instead of SQLContext if it is true.")
-            .add("zeppelin.spark.maxResult", "1000", "Max number of SparkSQL result to display.")
-            .add("args", "", "spark commandline args").build());
+            .add(ZeppelinConstants.ARG_SPARK_APP_NAME_KEY,
+                ZeppelinConstants.ARG_SPARK_APP_NAME_VALUE,
+                ZeppelinConstants.ARG_SPARK_APP_NAME_DESC)
+            .add(ZeppelinConstants.ARG_ZEPPELIN_SPARK_MASTER_KEY,
+                getSystemDefault(ZeppelinConstants.ENV_ZEPPELIN_SPARK_MASTER_KEY,
+                    ZeppelinConstants.ARG_SPARK_MASTER_KEY,
+                    ZeppelinConstants.ARG_SPARK_MASTER_VALUE),
+                ZeppelinConstants.ARG_SPARK_MASTER_DESC)
+            .add(ZeppelinConstants.ARG_SPARK_EXECUTOR_MEMORY_KEY,
+                getSystemDefault(null,
+                    ZeppelinConstants.ARG_SPARK_EXECUTOR_MEMORY_KEY,
+                    ZeppelinConstants.ARG_SPARK_EXECUTOR_MEMORY_VALUE),
+                ZeppelinConstants.ARG_SPARK_EXECUTOR_MEMORY_DESC)
+            .add(ZeppelinConstants.ARG_SPARK_CORES_MAX_KEY,
+                getSystemDefault(null,
+                    ZeppelinConstants.ARG_SPARK_CORES_MAX_KEY,
+                    ZeppelinConstants.ARG_SPARK_CORES_MAX_VALUE),
+                ZeppelinConstants.ARG_SPARK_CORES_MAX_DESC)
+            .add(ZeppelinConstants.ARG_SPARK_YARN_JAR_KEY,
+                getSystemDefault(ZeppelinConstants.ENV_SPARK_YARN_JAR_KEY,
+                    ZeppelinConstants.ARG_SPARK_YARN_JAR_KEY,
+                    ZeppelinConstants.ARG_SPARK_YARN_JAR_VALUE),
+                ZeppelinConstants.ARG_SPARK_YARN_JAR_DESC)
+            .add(ZeppelinConstants.ARG_ZEPPELIN_SPARK_USEHIVECONTEXT_KEY,
+                ZeppelinConstants.ARG_ZEPPELIN_SPARK_USEHIVECONTEXT_VALUE,
+                ZeppelinConstants.ARG_ZEPPELIN_SPARK_USEHIVECONTEXT_DESC)
+            .add(ZeppelinConstants.ARG_ZEPPELIN_SPARK_MAXRESULT_KEY,
+                ZeppelinConstants.ARG_ZEPPELIN_SPARK_MAXRESULT_VALUE,
+                ZeppelinConstants.ARG_ZEPPELIN_SPARK_MAXRESULT_DESC)
+            .add(ZeppelinConstants.CMD_ARGS_KEY,
+                ZeppelinConstants.CMD_ARGS_VALUE,
+                ZeppelinConstants.CMD_ARGS_DESC)
+            .build());
 
   }
 
@@ -160,13 +175,13 @@ public class SparkInterpreter extends Interpreter {
   }
 
   private boolean useHiveContext() {
-    return Boolean.parseBoolean(getProperty("zeppelin.spark.useHiveContext"));
+    return Boolean.parseBoolean(getProperty(ZeppelinConstants.ARG_ZEPPELIN_SPARK_USEHIVECONTEXT_KEY));
   }
 
   public SQLContext getSQLContext() {
     if (sqlc == null) {
       if (useHiveContext()) {
-        String name = "org.apache.spark.sql.hive.HiveContext";
+        String name = ZeppelinConstants.CLASS_HIVECONTEXT;
         Constructor<?> hc;
         try {
           hc = getClass().getClassLoader().loadClass(name)
@@ -191,7 +206,7 @@ public class SparkInterpreter extends Interpreter {
 
   public DependencyResolver getDependencyResolver() {
     if (dep == null) {
-      dep = new DependencyResolver(intp, sc, getProperty("zeppelin.dep.localrepo"));
+      dep = new DependencyResolver(intp, sc, getProperty(ZeppelinConstants.ARG_ZEPPELIN_DEP_LOCAL_REPO_KEY));
     }
     return dep;
   }
@@ -214,9 +229,9 @@ public class SparkInterpreter extends Interpreter {
   }
 
   public SparkContext createSparkContext() {
-    System.err.println("------ Create new SparkContext " + getProperty("master") + " -------");
+    System.err.println("------ Create new SparkContext " + getProperty(ZeppelinConstants.ARG_ZEPPELIN_SPARK_MASTER_KEY) + " -------");
 
-    String execUri = System.getenv("SPARK_EXECUTOR_URI");
+    String execUri = System.getenv(ZeppelinConstants.ENV_SPARK_EXECUTOR_URI_KEY);
     String[] jars = SparkILoop.getAddedJars();
 
     String classServerUri = null;
@@ -242,21 +257,21 @@ public class SparkInterpreter extends Interpreter {
 
     SparkConf conf =
         new SparkConf()
-            .setMaster(getProperty("master"))
-            .setAppName(getProperty("spark.app.name"))
-            .set("spark.repl.class.uri", classServerUri);
+            .setMaster(getProperty(ZeppelinConstants.ARG_ZEPPELIN_SPARK_MASTER_KEY))
+            .setAppName(getProperty(ZeppelinConstants.ARG_SPARK_APP_NAME_KEY))
+            .set(ZeppelinConstants.ARG_SPARK_REPL_CLASS_URI_KEY, classServerUri);
 
     if (jars.length > 0) {
       conf.setJars(jars);
     }
 
     if (execUri != null) {
-      conf.set("spark.executor.uri", execUri);
+      conf.set(ZeppelinConstants.ARG_SPARK_EXECUTOR_URI_KEY, execUri);
     }
-    if (System.getenv("SPARK_HOME") != null) {
-      conf.setSparkHome(System.getenv("SPARK_HOME"));
+    if (System.getenv(ZeppelinConstants.ENV_SPARK_HOME_KEY) != null) {
+      conf.setSparkHome(System.getenv(ZeppelinConstants.ENV_SPARK_HOME_KEY));
     }
-    conf.set("spark.scheduler.mode", "FAIR");
+    conf.set(ZeppelinConstants.ARG_SPARK_SCHEDULER_MODE_KEY, ZeppelinConstants.ARG_SPARK_SCHEDULER_MODE_VALUE);
 
     Properties intpProperty = getProperty();
 
@@ -316,8 +331,8 @@ public class SparkInterpreter extends Interpreter {
      * getClass.getClassLoader >> } >> in.setContextClassLoader()
      */
     Settings settings = new Settings();
-    if (getProperty("args") != null) {
-      String[] argsArray = getProperty("args").split(" ");
+    if (getProperty(ZeppelinConstants.CMD_ARGS_KEY) != null) {
+      String[] argsArray = getProperty(ZeppelinConstants.CMD_ARGS_KEY).split(" ");
       LinkedList<String> argList = new LinkedList<String>();
       for (String arg : argsArray) {
         argList.add(arg);
@@ -405,7 +420,7 @@ public class SparkInterpreter extends Interpreter {
     dep = getDependencyResolver();
 
     z = new ZeppelinContext(sc, sqlc, null, dep, printStream,
-        Integer.parseInt(getProperty("zeppelin.spark.maxResult")));
+        Integer.parseInt(getProperty(ZeppelinConstants.ARG_ZEPPELIN_SPARK_MAXRESULT_KEY)));
 
     try {
       if (sc.version().startsWith("1.1") || sc.version().startsWith("1.2")) {
