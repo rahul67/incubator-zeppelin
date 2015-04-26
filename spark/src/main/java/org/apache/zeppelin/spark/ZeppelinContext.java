@@ -261,13 +261,13 @@ public class ZeppelinContext extends HashMap<String, Object> {
   public void show(Object o, int maxResult) {
     Class cls = null;
     try {
-      cls = this.getClass().forName("org.apache.spark.sql.DataFrame");
+      cls = this.getClass().forName(ZeppelinConstants.CLASS_SPARK_DATAFRAME);
     } catch (ClassNotFoundException e) {
     }
 
     if (cls == null) {
       try {
-        cls = this.getClass().forName("org.apache.spark.sql.SchemaRDD");
+        cls = this.getClass().forName(ZeppelinConstants.CLASS_SPARK_SCHEMARDD);
       } catch (ClassNotFoundException e) {
       }
     }

@@ -20,6 +20,7 @@ package org.apache.zeppelin.spark.dep;
 import java.io.File;
 
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
+import org.apache.zeppelin.spark.ZeppelinConstants;
 import org.sonatype.aether.RepositorySystem;
 import org.sonatype.aether.RepositorySystemSession;
 import org.sonatype.aether.repository.LocalRepository;
@@ -41,9 +42,9 @@ public class Booter {
     MavenRepositorySystemSession session = new MavenRepositorySystemSession();
 
     // find homedir
-    String home = System.getenv("ZEPPELIN_HOME");
+    String home = System.getenv(ZeppelinConstants.ENV_ZEPPELIN_HOME_KEY);
     if (home == null) {
-      home = System.getProperty("zeppelin.home");
+      home = System.getProperty(ZeppelinConstants.ARG_ZEPPELIN_HOME_KEY);
     }
     if (home == null) {
       home = "..";

@@ -48,9 +48,9 @@ import org.apache.zeppelin.interpreter.InterpreterException;
 import org.apache.zeppelin.interpreter.InterpreterGroup;
 import org.apache.zeppelin.interpreter.InterpreterPropertyBuilder;
 import org.apache.zeppelin.interpreter.InterpreterResult;
+import org.apache.zeppelin.interpreter.InterpreterResult.Code;
 import org.apache.zeppelin.interpreter.LazyOpenInterpreter;
 import org.apache.zeppelin.interpreter.WrappedInterpreter;
-import org.apache.zeppelin.interpreter.InterpreterResult.Code;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,24 +78,28 @@ public class PySparkInterpreter extends Interpreter implements ExecuteResultHand
         "spark",
         PySparkInterpreter.class.getName(),
         new InterpreterPropertyBuilder()
-          .add("spark.home",
-               SparkInterpreter.getSystemDefault("SPARK_HOME", "spark.home", ""),
-               "Spark home path. Should be provided for pyspark")
-          .add("zeppelin.pyspark.python",
-               SparkInterpreter.getSystemDefault("PYSPARK_PYTHON", null, "python"),
-               "Python command to run pyspark with").build());
+          .add(ZeppelinConstants.ARG_SPARK_HOME_KEY,
+               SparkInterpreter.getSystemDefault(ZeppelinConstants.ENV_SPARK_HOME_KEY,
+                       ZeppelinConstants.ARG_SPARK_HOME_KEY,
+                       ZeppelinConstants.ARG_SPARK_HOME_VALUE),
+                   ZeppelinConstants.ARG_SPARK_HOME_DESC)
+          .add(ZeppelinConstants.ARG_ZEPPELIN_PYSPARK_PYTHON_KEY,
+               SparkInterpreter.getSystemDefault(ZeppelinConstants.ENV_PYSPARK_PYTHON_KEY,
+                       null,
+                       ZeppelinConstants.ARG_ZEPPELIN_PYSPARK_PYTHON_VALUE),
+               ZeppelinConstants.ARG_ZEPPELIN_PYSPARK_PYTHON_DESC).build());
   }
 
   public PySparkInterpreter(Properties property) {
     super(property);
 
-    scriptPath = System.getProperty("java.io.tmpdir") + "/zeppelin_pyspark.py";
+    scriptPath = System.getProperty(ZeppelinConstants.ENV_JAVA_TMP_DIR) + ZeppelinConstants.DEFAULT_ZEPPELIN_PYSPARK_EXE;
   }
 
   private String getSparkHome() {
-    String sparkHome = getProperty("spark.home");
+    String sparkHome = getProperty(ZeppelinConstants.ARG_SPARK_HOME_KEY);
     if (sparkHome == null) {
-      throw new InterpreterException("spark.home is undefined");
+      throw new InterpreterException(ZeppelinConstants.ARG_SPARK_HOME_KEY + " is undefined");
     } else {
       return sparkHome;
     }
@@ -113,7 +117,7 @@ public class PySparkInterpreter extends Interpreter implements ExecuteResultHand
     try {
       FileOutputStream outStream = new FileOutputStream(out);
       IOUtils.copy(
-          classLoader.getResourceAsStream("python/zeppelin_pyspark.py"),
+          classLoader.getResourceAsStream("python"+ZeppelinConstants.DEFAULT_ZEPPELIN_PYSPARK_EXE),
           outStream);
       outStream.close();
     } catch (IOException e) {
@@ -134,7 +138,7 @@ public class PySparkInterpreter extends Interpreter implements ExecuteResultHand
     gatewayServer.start();
 
     // Run python shell
-    CommandLine cmd = CommandLine.parse(getProperty("zeppelin.pyspark.python"));
+    CommandLine cmd = CommandLine.parse(getProperty(ZeppelinConstants.ARG_ZEPPELIN_PYSPARK_PYTHON_KEY));
     cmd.addArgument(scriptPath, false);
     cmd.addArgument(Integer.toString(port), false);
     executor = new DefaultExecutor();
@@ -158,17 +162,17 @@ public class PySparkInterpreter extends Interpreter implements ExecuteResultHand
     try {
       Map env = EnvironmentUtils.getProcEnvironment();
 
-      String pythonPath = (String) env.get("PYTHONPATH");
+      String pythonPath = (String) env.get(ZeppelinConstants.ENV_PYTHONPATH_KEY);
       if (pythonPath == null) {
         pythonPath = "";
       } else {
         pythonPath += ":";
       }
 
-      pythonPath += getSparkHome() + "/python/lib/py4j-0.8.2.1-src.zip:"
+      pythonPath += getSparkHome() + ZeppelinConstants.PY4J_SRC_ZIP_PATH + ":"
           + getSparkHome() + "/python";
 
-      env.put("PYTHONPATH", pythonPath);
+      env.put(ZeppelinConstants.ENV_PYTHONPATH_KEY, pythonPath);
 
       executor.execute(cmd, env, this);
       pythonscriptRunning = true;
