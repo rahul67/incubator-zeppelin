@@ -122,6 +122,7 @@ public class HiveInterpreter extends Interpreter {
       else {
         msg = new StringBuilder("%table ");
       }
+      logger.debug("Executing SQL Statement: {}", sql);
       ResultSet res = currentStatement.executeQuery(sql);
       try {
         ResultSetMetaData md = res.getMetaData();

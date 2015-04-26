@@ -20,13 +20,20 @@ package org.apache.zeppelin.interpreter;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * InterpreterPropertyBuilder
  */
 public class InterpreterPropertyBuilder {
+
+  Logger logger = LoggerFactory.getLogger(InterpreterPropertyBuilder.class);
+
   Map<String, InterpreterProperty> properties = new HashMap<String, InterpreterProperty>();
 
   public InterpreterPropertyBuilder add(String name, String defaultValue, String description){
+    logger.debug("Interpreter Configuration: {} = {}", name, defaultValue);
     properties.put(name, new InterpreterProperty(defaultValue, description));
     return this;
   }
